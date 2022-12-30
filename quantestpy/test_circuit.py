@@ -76,6 +76,24 @@ class TestCircuit:
         self._from_right_to_left_for_qubit_ids = False
         self._binary_to_vector = None
         self._initial_state_vector = None
+        self._qubit_annotation = {qubit_id: {}
+                                  for qubit_id in range(self._num_qubit)}
+
+    @property
+    def qubit_annotation(self,):
+        return self._qubit_annotation
+
+    def add_qubit_annotation(self, qubit_id_list: list, key, value):
+        if not isinstance(qubit_id_list, list):
+            raise QuantestPyTestCircuitError("qubit_id_list must be a list.")
+        for qubit_id in qubit_id_list:
+            if qubit_id >= self._num_qubit or qubit_id < 0:
+                raise QuantestPyTestCircuitError(
+                    f"qubit_id {qubit_id} is out of range."
+                )
+
+        for qubit_id in qubit_id_list:
+            self._qubit_annotation[qubit_id][key] = value
 
     def add_gate(self, gate: dict) -> None:
         """
@@ -235,6 +253,14 @@ class TestCircuit:
                 f'{gate["name"]} gate must have a list '
                 "containing exactly 2 elements for 'target_qubit'."
             )
+
+        if "annotation" in gate.keys():
+            if not isinstance(gate["annotation"], dict):
+                raise QuantestPyTestCircuitError(
+                    'gate["annotation"] must be a dictionary.'
+                )
+        else:
+            gate["annotation"] = {}
 
         self._gates.append(gate)
 
