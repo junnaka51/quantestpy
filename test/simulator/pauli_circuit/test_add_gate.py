@@ -39,14 +39,12 @@ class TestAddGate(unittest.TestCase):
              "target_qubit": [3],
              "control_qubit": [0, 1],
              "control_value": [1, 1],
-             "parameter": [],
-             "annotation": {}},
+             "parameter": []},
             {"name": "y",
              "target_qubit": [10, 11, 12],
              "control_qubit": [5],
              "control_value": [0],
-             "parameter": [],
-             "annotation": {}}
+             "parameter": []}
         ]
         actual_gates = circ._gates
 

@@ -41,14 +41,12 @@ class TestTestCircuitAddGate(unittest.TestCase):
                 "target_qubit": [1],
                 "control_qubit": [],
                 "control_value": [],
-                "parameter": [],
-                "annotation": {}},
+                "parameter": []},
             {"name": "x",
                 "target_qubit": [2],
                 "control_qubit": [0, 1],
                 "control_value": [1, 1],
-                "parameter": [],
-                "annotation": {}}
+                "parameter": []}
         ]
 
         actual_gates = test_circuit._gates
@@ -77,14 +75,12 @@ class TestTestCircuitAddGate(unittest.TestCase):
                 "target_qubit": [1, 2],
                 "control_qubit": [0],
                 "control_value": [1],
-                "parameter": [],
-                "annotation": {}},
+                "parameter": []},
             {"name": "h",
                 "target_qubit": [0, 1, 2],
                 "control_qubit": [],
                 "control_value": [],
-                "parameter": [],
-                "annotation": {}}
+                "parameter": []}
         ]
 
         actual_gates = test_circuit._gates
