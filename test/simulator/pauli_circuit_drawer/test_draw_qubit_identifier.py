@@ -1,7 +1,7 @@
 import unittest
 
 from quantestpy import PauliCircuit
-from quantestpy.simulator.circuit_drawer import CircuitDrawer as CD
+from quantestpy.simulator.pauli_circuit_drawer import PauliCircuitDrawer as CD
 
 
 class TestDrawQubitIdentifier(unittest.TestCase):
@@ -10,7 +10,7 @@ class TestDrawQubitIdentifier(unittest.TestCase):
     $ pwd
     {Your directory where you git-cloned quantestpy}/quantestpy
     $ python -m \
-        unittest test.simulator.circuit_drawer.test_draw_qubit_identifier
+        unittest test.simulator.pauli_circuit_drawer.test_draw_qubit_identifier
     ....
     ----------------------------------------------------------------------
     Ran 4 tests in 0.002s
@@ -25,11 +25,11 @@ class TestDrawQubitIdentifier(unittest.TestCase):
 
         cd.draw_qubit_indentifier()
         actual = cd.line_id_to_text
-        expect = {0: "0 \033[0m",
-                  1: "  ",
-                  2: "1 \033[0m",
-                  3: "  ",
-                  4: "2 \033[0m"}
+        expect = {0: "0\033[0m",
+                  1: " ",
+                  2: "1\033[0m",
+                  3: " ",
+                  4: "2\033[0m"}
         self.assertEqual(actual, expect)
 
     def test_reg_name(self,):
@@ -61,11 +61,11 @@ class TestDrawQubitIdentifier(unittest.TestCase):
 
         cd.draw_qubit_indentifier()
         actual = cd.line_id_to_text
-        expect = {0: "0 \033[0m",
-                  1: "  ",
-                  2: "\033[34m1 \033[0m",
-                  3: "  ",
-                  4: "\033[35m2 \033[0m"}
+        expect = {0: "0\033[0m",
+                  1: " ",
+                  2: "\033[34m1\033[0m",
+                  3: " ",
+                  4: "\033[35m2\033[0m"}
         self.assertEqual(actual, expect)
 
     def test_reg_name_color_code(self,):
