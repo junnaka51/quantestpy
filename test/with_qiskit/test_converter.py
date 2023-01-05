@@ -3,9 +3,11 @@ import unittest
 import numpy as np
 from qiskit import QuantumCircuit
 
-from quantestpy import TestCircuit
-from quantestpy.converter import (_cvt_openqasm_to_test_circuit,
-                                  _cvt_qiskit_to_test_circuit)
+from quantestpy import QuantestPyCircuit
+from quantestpy.converter.qasm_and_qiskit import (
+    _cvt_openqasm_to_quantestpy_circuit, _cvt_qiskit_to_quantestpy_circuit)
+from quantestpy.simulator.state_vector_circuit import \
+    cvt_quantestpy_circuit_to_state_vector_circuit
 
 
 class TestConverter(unittest.TestCase):
@@ -25,9 +27,9 @@ class TestConverter(unittest.TestCase):
         qc = QuantumCircuit(2, 2)
         qc.h(0)
         qc.cx(0, 1)
-        actual_circuit = _cvt_qiskit_to_test_circuit(qc)
+        actual_circuit = _cvt_qiskit_to_quantestpy_circuit(qc)
 
-        expected_circuit = TestCircuit(2)
+        expected_circuit = QuantestPyCircuit(2)
         expected_circuit.add_gate(
             {"name": "h", "target_qubit": [0], "control_qubit": [],
              "control_value": [], "parameter": []})
@@ -35,8 +37,10 @@ class TestConverter(unittest.TestCase):
                                    "control_qubit": [0], "control_value": [1],
                                    "parameter": []})
 
-        actual_gate = actual_circuit._get_whole_gates()
-        expected_gate = expected_circuit._get_whole_gates()
+        actual_gate = cvt_quantestpy_circuit_to_state_vector_circuit(
+            actual_circuit)._get_whole_gates()
+        expected_gate = cvt_quantestpy_circuit_to_state_vector_circuit(
+            expected_circuit)._get_whole_gates()
         self.assertIsNone(
             np.testing.assert_allclose(actual_gate, expected_gate))
 
@@ -45,9 +49,9 @@ class TestConverter(unittest.TestCase):
         qc.h(0)
         qc.cx(0, 1)
         qasm = qc.qasm()
-        actual_circuit = _cvt_openqasm_to_test_circuit(qasm)
+        actual_circuit = _cvt_openqasm_to_quantestpy_circuit(qasm)
 
-        expected_circuit = TestCircuit(2)
+        expected_circuit = QuantestPyCircuit(2)
         expected_circuit.add_gate(
             {"name": "h", "target_qubit": [0], "control_qubit": [],
              "control_value": [], "parameter": []})
@@ -55,8 +59,10 @@ class TestConverter(unittest.TestCase):
                                    "control_qubit": [0], "control_value": [1],
                                    "parameter": []})
 
-        actual_gate = actual_circuit._get_whole_gates()
-        expected_gate = expected_circuit._get_whole_gates()
+        actual_gate = cvt_quantestpy_circuit_to_state_vector_circuit(
+            actual_circuit)._get_whole_gates()
+        expected_gate = cvt_quantestpy_circuit_to_state_vector_circuit(
+            expected_circuit)._get_whole_gates()
         self.assertIsNone(
             np.testing.assert_allclose(actual_gate, expected_gate))
 
@@ -66,9 +72,9 @@ class TestConverter(unittest.TestCase):
         qc.cy(0, 1)
         qc.cz(0, 1)
         qc.ch(0, 1)
-        actual_circuit = _cvt_qiskit_to_test_circuit(qc)
+        actual_circuit = _cvt_qiskit_to_quantestpy_circuit(qc)
 
-        expected_circuit = TestCircuit(3)
+        expected_circuit = QuantestPyCircuit(3)
         expected_circuit.add_gate({"name": "x", "target_qubit": [1],
                                    "control_qubit": [0], "control_value": [1],
                                    "parameter": []})
@@ -82,8 +88,10 @@ class TestConverter(unittest.TestCase):
                                    "control_qubit": [0], "control_value": [1],
                                    "parameter": []})
 
-        actual_gate = actual_circuit._get_whole_gates()
-        expected_gate = expected_circuit._get_whole_gates()
+        actual_gate = cvt_quantestpy_circuit_to_state_vector_circuit(
+            actual_circuit)._get_whole_gates()
+        expected_gate = cvt_quantestpy_circuit_to_state_vector_circuit(
+            expected_circuit)._get_whole_gates()
         self.assertIsNone(
             np.testing.assert_allclose(actual_gate, expected_gate, atol=1e-15))
 
@@ -94,9 +102,9 @@ class TestConverter(unittest.TestCase):
         qc.crx(theta, 0, 1)
         qc.cry(theta, 0, 1)
         qc.crz(theta, 0, 1)
-        actual_circuit = _cvt_qiskit_to_test_circuit(qc)
+        actual_circuit = _cvt_qiskit_to_quantestpy_circuit(qc)
 
-        expected_circuit = TestCircuit(3)
+        expected_circuit = QuantestPyCircuit(3)
         expected_circuit.add_gate({"name": "rx", "target_qubit": [1],
                                    "control_qubit": [0], "control_value": [1],
                                    "parameter": [theta]})
@@ -107,8 +115,10 @@ class TestConverter(unittest.TestCase):
                                    "control_qubit": [0], "control_value": [1],
                                    "parameter": [theta]})
 
-        actual_gate = actual_circuit._get_whole_gates()
-        expected_gate = expected_circuit._get_whole_gates()
+        actual_gate = cvt_quantestpy_circuit_to_state_vector_circuit(
+            actual_circuit)._get_whole_gates()
+        expected_gate = cvt_quantestpy_circuit_to_state_vector_circuit(
+            expected_circuit)._get_whole_gates()
         self.assertIsNone(
             np.testing.assert_allclose(actual_gate, expected_gate, atol=1e-15))
 
@@ -122,9 +132,9 @@ class TestConverter(unittest.TestCase):
         qc.cp(theta, 0, 1)
         qc.cu(theta, phi, lambda_, gamma, 0, 1)
         qc.ccx(0, 1, 2)
-        actual_circuit = _cvt_qiskit_to_test_circuit(qc)
+        actual_circuit = _cvt_qiskit_to_quantestpy_circuit(qc)
 
-        expected_circuit = TestCircuit(3)
+        expected_circuit = QuantestPyCircuit(3)
         expected_circuit.add_gate({"name": "p", "target_qubit": [1],
                                    "control_qubit": [0], "control_value": [1],
                                    "parameter": [theta]})
@@ -136,8 +146,10 @@ class TestConverter(unittest.TestCase):
                                    "control_value": [1, 1],
                                    "parameter": []})
 
-        actual_gate = actual_circuit._get_whole_gates()
-        expected_gate = expected_circuit._get_whole_gates()
+        actual_gate = cvt_quantestpy_circuit_to_state_vector_circuit(
+            actual_circuit)._get_whole_gates()
+        expected_gate = cvt_quantestpy_circuit_to_state_vector_circuit(
+            expected_circuit)._get_whole_gates()
         self.assertIsNone(
             np.testing.assert_allclose(actual_gate, expected_gate, atol=1e-15))
 
@@ -146,9 +158,9 @@ class TestConverter(unittest.TestCase):
         qc = QuantumCircuit(3, global_phase=np.pi/7.)
         qc.h(0)
         qc.ccx(0, 1, 2)
-        actual_circuit = _cvt_qiskit_to_test_circuit(qc)
+        actual_circuit = _cvt_qiskit_to_quantestpy_circuit(qc)
 
-        expected_circuit = TestCircuit(3)
+        expected_circuit = QuantestPyCircuit(3)
         expected_circuit.add_gate({"name": "h",
                                    "target_qubit": [0],
                                    "control_qubit": [],
@@ -165,7 +177,9 @@ class TestConverter(unittest.TestCase):
                                    "control_value": [],
                                    "parameter": [np.pi/7.]})
 
-        actual_gate = actual_circuit._get_whole_gates()
-        expected_gate = expected_circuit._get_whole_gates()
+        actual_gate = cvt_quantestpy_circuit_to_state_vector_circuit(
+            actual_circuit)._get_whole_gates()
+        expected_gate = cvt_quantestpy_circuit_to_state_vector_circuit(
+            expected_circuit)._get_whole_gates()
         self.assertIsNone(
             np.testing.assert_allclose(actual_gate, expected_gate, atol=1e-15))
