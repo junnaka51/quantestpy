@@ -1,43 +1,38 @@
-import copy
+import numpy as np
 
 from quantestpy.exceptions import QuantestPyError
 from quantestpy.simulator.pauli_circuit import PauliCircuit
+from quantestpy.simulator.quantestpy_circuit_drawer import \
+    QuantestPyCircuitDrawer
 
 
-class CircuitDrawer:
+class PauliCircuitDrawer(QuantestPyCircuitDrawer):
 
-    def __init__(self, pc: PauliCircuit):
-        self._pc = copy.deepcopy(pc)
-        self._qubit_value = pc.qubit_value
-        self._qubit_phase = pc.qubit_phase
+    def __init__(self, circuit: PauliCircuit):
+        PauliCircuit._assert_is_pauli_circuit(circuit)
+        super().__init__(circuit)
 
-        self._color_code_line_1 = ""
+        self._qubit_value = self._qc.qubit_value
+        self._qubit_phase = self._qc.qubit_phase
+
+        self._color_code_line_1 = self.get_color_code("green")
         self._color_code_line_0 = ""
 
         self._color_code_tgt = ""
         self._color_code_ctrl = ""
         self._color_code_cross = ""
         self._color_code_wire = ""
+        self._color_code_gate = self.get_color_code("red")
+        self._decimals = 2
 
-        self._num_qubit = self._pc._num_qubit
-        self._num_line = 2*self._num_qubit - 1
-        self._qubit_id_to_line_id = {qubit_id: qubit_id * 2
-                                     for qubit_id in range(self._num_qubit)}
-        self._line_id_to_qubit_id \
-            = {line_id: line_id // 2
-               for line_id in range(self._num_line) if line_id % 2 == 0}
-        self._line_id_to_text \
-            = {line_id: "" for line_id in range(self._num_line)}
         self._qubit_id_to_color_code \
+            = {qubit_id: "" for qubit_id in range(self._num_qubit)}
+        self._output_qubit_id_to_color_code \
             = {qubit_id: "" for qubit_id in range(self._num_qubit)}
         self._qubit_id_to_reg_name \
             = {qubit_id: "" for qubit_id in range(self._num_qubit)}
-
-        self._occupied_line_id = list()
-
-    @property
-    def line_id_to_text(self):
-        return self._line_id_to_text
+        self._qubit_id_to_output_reg_name \
+            = {qubit_id: "" for qubit_id in range(self._num_qubit)}
 
     @staticmethod
     def get_color_code(color: str) -> str:
@@ -64,22 +59,43 @@ class CircuitDrawer:
 
     def set_color_to_reg(self, color_to_reg: dict) -> None:
         for color, reg in color_to_reg.items():
-            self._pc._assert_is_correct_reg(reg)
+            self._qc._assert_is_correct_reg(reg)
             for qubit_id in reg:
                 self._qubit_id_to_color_code[qubit_id] = self.get_color_code(
                     color)
 
+    def set_color_to_output_reg(self, color_to_reg: dict) -> None:
+        for color, reg in color_to_reg.items():
+            self._qc._assert_is_correct_reg(reg)
+            for qubit_id in reg:
+                self._output_qubit_id_to_color_code[qubit_id] = \
+                    self.get_color_code(color)
+
     def set_name_to_reg(self, name_to_reg: dict) -> None:
         for name, reg in name_to_reg.items():
-            self._pc._assert_is_correct_reg(reg)
+            self._qc._assert_is_correct_reg(reg)
             for qubit_id in reg:
                 self._qubit_id_to_reg_name[qubit_id] = name
 
+    def set_name_to_output_reg(self, name_to_reg: dict) -> None:
+        for name, reg in name_to_reg.items():
+            self._qc._assert_is_correct_reg(reg)
+            for qubit_id in reg:
+                self._qubit_id_to_output_reg_name[qubit_id] = name
+
+    def is_gate_executed(self, gate_id: int) -> bool:
+        gate = self._qc._gates[gate_id]
+        if len(gate["control_qubit"]) == 0 or \
+                np.all(self._qc._qubit_value[gate["control_qubit"]]
+                       == gate["control_value"]):
+            return True
+        else:
+            return False
+
     def reset_all(self,) -> None:
-        self._line_id_to_text \
-            = {line_id: "" for line_id in range(self._num_line)}
-        self._pc.qubit_value = self._qubit_value.copy()
-        self._pc.qubit_phase = self._qubit_phase.copy()
+        super().reset_all()
+        self._qc.qubit_value = self._qubit_value.copy()
+        self._qc.qubit_phase = self._qubit_phase.copy()
 
     def get_color_code_line(self, qubit_val: int) -> str:
         return self._color_code_line_1 if qubit_val == 1 else \
@@ -102,10 +118,6 @@ class CircuitDrawer:
     @staticmethod
     def get_wire(color_code: str = ""):
         return color_code + " │ " + "\033[0m"
-
-    @staticmethod
-    def get_space(length: int = 3) -> str:
-        return " " * length
 
     @staticmethod
     def get_tgt(name: str, qubit_val: int, color_code: str = "") -> str:
@@ -141,12 +153,14 @@ class CircuitDrawer:
         return color_code + obj + "\033[0m"
 
     @staticmethod
-    def get_inter_line_id(id_a: int, id_b: int) -> list:
-        id_max, id_min = max(id_a, id_b), min(id_a, id_b)
-        return [id_ for id_ in range(id_max) if id_ < id_max and id_ > id_min]
+    def get_phase(qubit_phase: float,
+                  decimals: int,
+                  color_code: str = "") -> str:
+        qubit_phase_str = str(np.round(qubit_phase / np.pi, decimals))
+        return color_code + qubit_phase_str + "\033[0m"
 
     def draw_qubit_indentifier(self) -> None:
-        """Draws a qubit identifer
+        """Overrides
 
         ::
         '0 reg1'
@@ -159,6 +173,9 @@ class CircuitDrawer:
                 reg_name_max_length = len(reg_name)
 
         id_max_length = len(str(self._num_qubit-1))
+        if reg_name_max_length > 0:
+            id_max_length += 1
+
         for line_id in range(self._num_line):
             if line_id in self._line_id_to_qubit_id.keys():
                 qubit_id = self._line_id_to_qubit_id[line_id]
@@ -166,13 +183,45 @@ class CircuitDrawer:
                 self._line_id_to_text[line_id] += \
                     self._qubit_id_to_color_code[qubit_id] \
                     + str(qubit_id) \
-                    + self.get_space(id_max_length+1-len(str(qubit_id))) \
+                    + self.get_space(id_max_length-len(str(qubit_id))) \
                     + reg_name \
                     + "\033[0m" \
                     + self.get_space(reg_name_max_length-len(reg_name))
             else:
                 self._line_id_to_text[line_id] += \
-                    self.get_space(id_max_length+1+reg_name_max_length)
+                    self.get_space(id_max_length+reg_name_max_length)
+
+    def draw_qubit_identifier_at_end(self) -> None:
+        """Overrides
+
+        ::
+        'out 0'
+
+        '    1'
+        """
+        reg_name_max_length = 0
+        for reg_name in self._qubit_id_to_output_reg_name.values():
+            if len(reg_name) > reg_name_max_length:
+                reg_name_max_length = len(reg_name)
+
+        if reg_name_max_length > 0:
+            reg_name_max_length += 1
+
+        id_max_length = len(str(self._num_qubit-1))
+        for line_id in range(self._num_line):
+            if line_id in self._line_id_to_qubit_id.keys():
+                qubit_id = self._line_id_to_qubit_id[line_id]
+                reg_name = self._qubit_id_to_output_reg_name[qubit_id]
+                self._line_id_to_text[line_id] += \
+                    self._output_qubit_id_to_color_code[qubit_id] \
+                    + reg_name \
+                    + self.get_space(reg_name_max_length-len(reg_name)) \
+                    + str(qubit_id) \
+                    + "\033[0m" \
+                    + self.get_space(id_max_length-len(str(qubit_id)))
+            else:
+                self._line_id_to_text[line_id] += \
+                    self.get_space(id_max_length+reg_name_max_length)
 
     def draw_init_vector(self) -> None:
         """Draws initial state vectors.
@@ -185,7 +234,7 @@ class CircuitDrawer:
         for line_id in range(self._num_line):
             if line_id in self._line_id_to_qubit_id.keys():
                 qubit_id = self._line_id_to_qubit_id[line_id]
-                qubit_val = self._pc.qubit_value[qubit_id]
+                qubit_val = self._qc.qubit_value[qubit_id]
                 self._line_id_to_text[line_id] += \
                     self.get_init_state(
                         qubit_val=qubit_val,
@@ -193,29 +242,57 @@ class CircuitDrawer:
             else:
                 self._line_id_to_text[line_id] += self.get_space(length=3)
 
-    def draw_space(self,) -> None:
-        """Draws spaces.
+    def draw_final_vector(self) -> None:
+        """Draws final state vectors.
+        ::
+        |1>
+
+        |0>
+        """
+        self.draw_init_vector()
+
+    def draw_init_phase(self) -> None:
+        """Draws qubit phases in unit of PI.
 
         ::
-        ' '
+        0.5
+
+        0.0
         """
-        for line_id in range(self._num_line):
-            self._line_id_to_text[line_id] += self.get_space(length=1)
+        phase_max_length = 0
+        for qubit_phase in self._qc.qubit_phase:
+            qubit_phase_str_length = \
+                len(str(np.round(qubit_phase / np.pi, self._decimals)))
+            if qubit_phase_str_length > phase_max_length:
+                phase_max_length = qubit_phase_str_length
 
-    def draw_line(self) -> None:
-        """Draws lines.
-
-        ::
-        ─
-
-        ─
-
-        ─
-        """
         for line_id in range(self._num_line):
             if line_id in self._line_id_to_qubit_id.keys():
                 qubit_id = self._line_id_to_qubit_id[line_id]
-                qubit_val = self._pc.qubit_value[qubit_id]
+                qubit_phase = self._qc.qubit_phase[qubit_id]
+                qubit_phase_str = self.get_phase(qubit_phase, self._decimals)
+                self._line_id_to_text[line_id] += qubit_phase_str \
+                    + self.get_space(phase_max_length-len(qubit_phase_str))
+            else:
+                self._line_id_to_text[line_id] += self.get_space(
+                    length=phase_max_length)
+
+    def draw_final_phase(self) -> None:
+        """Draws qubit phases in unit of PI.
+
+        ::
+        0.5
+
+        0.0
+        """
+        self.draw_init_phase()
+
+    def draw_line(self) -> None:
+        """Overrides"""
+        for line_id in range(self._num_line):
+            if line_id in self._line_id_to_qubit_id.keys():
+                qubit_id = self._line_id_to_qubit_id[line_id]
+                qubit_val = self._qc.qubit_value[qubit_id]
                 cc = self.get_color_code_line(qubit_val)
                 self._line_id_to_text[line_id] += \
                     self.get_line(qubit_val=qubit_val, length=1, color_code=cc)
@@ -223,17 +300,16 @@ class CircuitDrawer:
                 self._line_id_to_text[line_id] += self.get_space(length=1)
 
     def draw_tgt(self, gate_id: int) -> None:
-        """Draws target objs in a gate.
+        """Overrides"""
+        if self.is_gate_executed(gate_id):
+            self._color_code_tgt = self._color_code_gate
+        else:
+            self._color_code_tgt = ""
 
-        ::
-        [X]
-
-        [X]
-        """
-        gate = self._pc._gates[gate_id]
+        gate = self._qc._gates[gate_id]
         for tg_qubit_id in gate["target_qubit"]:
             line_id = self._qubit_id_to_line_id[tg_qubit_id]
-            qubit_val = self._pc.qubit_value[tg_qubit_id]
+            qubit_val = self._qc.qubit_value[tg_qubit_id]
             self._line_id_to_text[line_id] += \
                 self.get_tgt(
                     name=gate["name"],
@@ -242,18 +318,17 @@ class CircuitDrawer:
             self._occupied_line_id.append(line_id)
 
     def draw_ctrl(self, gate_id: int) -> None:
-        """Draws ctrl objs in a gate.
+        """Overrides"""
+        if self.is_gate_executed(gate_id):
+            self._color_code_ctrl = self._color_code_gate
+        else:
+            self._color_code_ctrl = ""
 
-        ::
-        ─■─
-
-        ─■─
-        """
-        gate = self._pc._gates[gate_id]
+        gate = self._qc._gates[gate_id]
         for ctrl_qubit_id, ctrl_val \
                 in zip(gate["control_qubit"], gate["control_value"]):
             line_id = self._qubit_id_to_line_id[ctrl_qubit_id]
-            qubit_val = self._pc.qubit_value[ctrl_qubit_id]
+            qubit_val = self._qc.qubit_value[ctrl_qubit_id]
             cc_ctrl = self._color_code_ctrl if \
                 len(self._color_code_ctrl) > 0 \
                 else self.get_color_code_line(qubit_val)
@@ -267,14 +342,15 @@ class CircuitDrawer:
             self._occupied_line_id.append(line_id)
 
     def draw_wire(self, gate_id: int) -> None:
-        """Draws wire objs between tgt and ctrl objs in a gate.
+        """Overrides"""
+        if self.is_gate_executed(gate_id):
+            self._color_code_wire = self._color_code_gate
+            self._color_code_cross = self._color_code_gate
+        else:
+            self._color_code_wire = ""
+            self._color_code_cross = ""
 
-        ::
-         │
-         ┼
-         │
-        """
-        gate = self._pc._gates[gate_id]
+        gate = self._qc._gates[gate_id]
         inter_line_id = list()
         for ctrl_qubit_id in gate["control_qubit"]:
             ctrl_line_id = self._qubit_id_to_line_id[ctrl_qubit_id]
@@ -288,7 +364,7 @@ class CircuitDrawer:
             if line_id not in self._occupied_line_id:
                 if line_id in self._line_id_to_qubit_id.keys():  # qubit
                     qubit_id = self._line_id_to_qubit_id[line_id]
-                    qubit_val = self._pc.qubit_value[qubit_id]
+                    qubit_val = self._qc.qubit_value[qubit_id]
                     cc_cross = self._color_code_cross
                     cc_line = self.get_color_code_line(qubit_val)
                     self._line_id_to_text[line_id] += self.get_cross_line(
@@ -302,19 +378,14 @@ class CircuitDrawer:
                 self._occupied_line_id.append(line_id)
 
     def draw_rest(self, gate_id: int) -> None:
-        """Draws objs to fill the holes.
-
-        ::
-        '   '
-
-        """
+        """Overrides"""
         _ = gate_id  # unused
         for line_id in range(self._num_line):
             # only when not occupied yet
             if line_id not in self._occupied_line_id:
                 if line_id in self._line_id_to_qubit_id.keys():  # qubit
                     qubit_id = self._line_id_to_qubit_id[line_id]
-                    qubit_val = self._pc.qubit_value[qubit_id]
+                    qubit_val = self._qc.qubit_value[qubit_id]
                     cc_line = self.get_color_code_line(qubit_val)
                     self._line_id_to_text[line_id] += \
                         self.get_line(qubit_val=qubit_val, color_code=cc_line)
@@ -322,67 +393,32 @@ class CircuitDrawer:
                     self._line_id_to_text[line_id] += self.get_space()
                 self._occupied_line_id.append(line_id)
 
-    def draw_one_gate(self, gate_id: int) -> None:
-        """Draws objs for one gate operation.
-
-        ::
-        ─■─
-         │
-        ─┼─
-         │
-        ─o─
-         │
-        [X]
-
-        ───
-        """
-        self._occupied_line_id = list()
-        self.draw_tgt(gate_id)
-        self.draw_ctrl(gate_id)
-        self.draw_wire(gate_id)
-        self.draw_rest(gate_id)
-
-        if len(self._occupied_line_id) != self._num_line:
-            raise QuantestPyError("Unexpected error. Please report.")
-
     def draw_circuit(self) -> None:
-        """Draw all objs for the circuit
-
-        ::
-        0  |1> ──■──────[X]─
-                 │       │
-        1  |0> ──┼───────┼──
-                 │       │
-        2  |1> ──o───■───■──
-                 │   │   │
-        3  |1> ─[X]──o───┼──
-                     │   │
-        4  |1> ─────[X]──■──
-        """
+        """Overrides"""
         self.draw_qubit_indentifier()
         self.draw_space()
         self.draw_init_vector()
         self.draw_space()
+        self.draw_init_phase()
+        self.draw_space()
         self.draw_line()
 
-        for i in range(len(self._pc._gates)):
+        for i in range(len(self._qc._gates)):
             self.draw_one_gate(i)
-            self._pc._execute_i_th_gate(i)
+            self._qc._execute_i_th_gate(i)
             self.draw_line()
 
-    def create_single_string(self) -> str:
-        return "\n".join(list(self.line_id_to_text.values()))
-
-    def __repr__(self) -> str:
-        return self.create_single_string()
-
-    def __str__(self) -> str:
-        return self.create_single_string()
+        self.draw_space()
+        self.draw_final_vector()
+        self.draw_space()
+        self.draw_final_phase()
+        self.draw_space()
+        self.draw_qubit_identifier_at_end()
 
 
-def draw_circuit(circuit: PauliCircuit) -> CircuitDrawer:
+def draw_circuit(circuit: PauliCircuit) -> PauliCircuitDrawer:
     """This is the user interface."""
     PauliCircuit._assert_is_pauli_circuit(circuit)
-    cd = CircuitDrawer(circuit)
-    cd.draw_circuit()
-    return cd
+    pcd = PauliCircuitDrawer(circuit)
+    pcd.draw_circuit()
+    return pcd

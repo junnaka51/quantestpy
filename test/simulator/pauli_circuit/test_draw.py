@@ -1,7 +1,7 @@
 import unittest
 
 from quantestpy import PauliCircuit
-from quantestpy.simulator.circuit_drawer import CircuitDrawer
+from quantestpy.simulator.pauli_circuit_drawer import PauliCircuitDrawer
 
 
 class TestDraw(unittest.TestCase):
@@ -38,4 +38,4 @@ class TestDraw(unittest.TestCase):
              "control_qubit": [0],
              "control_value": [0]}
         )
-        self.assertIsInstance(circ.draw(), CircuitDrawer)
+        self.assertIsInstance(circ.draw(), PauliCircuitDrawer)

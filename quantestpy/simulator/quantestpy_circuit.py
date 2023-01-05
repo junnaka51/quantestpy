@@ -151,6 +151,11 @@ class QuantestPyCircuit:
         self._diagnostic_gate(gate)
         self._gates.append(gate)
 
+    def draw(self,):
+        from quantestpy.simulator.quantestpy_circuit_drawer import draw_circuit
+
+        return draw_circuit(self)
+
 
 if __name__ == "__main__":
     """Example showing how to use QuantestPyCircuit class."""
