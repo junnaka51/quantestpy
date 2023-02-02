@@ -1,5 +1,5 @@
 [build-system]
-requires = ["wheel", "setuptools"]
+requires = ["wheel", "setuptools", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -12,6 +12,7 @@ requires-python = ">=3.7"
 dependencies = [
   "numpy == 1.*"
 ]
+dynamic = ["version"]
 
 [project.urls]
 homepage ="https://github.com/QuantestPy/quantestpy"
@@ -30,6 +31,13 @@ qiskit = [
 [tool.setuptools]
 include-package-data = true
 zip-safe = false
+packages = ["quantestpy"]
+
+[tool.setuptools.dynamic]
+version = {attr = "quantestpy._version.__version__"}
+
+[tool.setuptools_scm]
+write_to = "quantestpy/_version.py"
 
 [tool.flake8]
 per-file-ignores = "__init__.py:F401"
